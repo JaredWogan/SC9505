@@ -114,6 +114,14 @@ All code was compiled inside an Ubunutu WSL environment on an AMD 3900X
  with 32GB of RAM.
  All timing are performance data was run with dense, randomly generated
  arrays and vectors.
+ A full repository containing all of my code can be found at 
+\begin_inset CommandInset href
+LatexCommand href
+target "https://github.com/JaredWogan/SC9505"
+
+\end_inset
+
+.
 \end_layout
 
 \begin_layout Section
