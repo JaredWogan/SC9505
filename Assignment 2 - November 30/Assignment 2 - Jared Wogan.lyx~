@@ -1,0 +1,7089 @@
+#LyX 2.3 created this file. For more info see http://www.lyx.org/
+\lyxformat 544
+\begin_document
+\begin_header
+\save_transient_properties true
+\origin unavailable
+\textclass article
+\begin_preamble
+% Add margins to figure captions
+
+\usepackage[margin=1cm]{caption}
+\end_preamble
+\use_default_options true
+\maintain_unincluded_children false
+\language english
+\language_package default
+\inputencoding auto
+\fontencoding global
+\font_roman "palatino" "default"
+\font_sans "default" "default"
+\font_typewriter "default" "default"
+\font_math "auto" "auto"
+\font_default_family default
+\use_non_tex_fonts false
+\font_sc false
+\font_osf false
+\font_sf_scale 100 100
+\font_tt_scale 100 100
+\use_microtype true
+\use_dash_ligatures true
+\graphics default
+\default_output_format default
+\output_sync 0
+\bibtex_command default
+\index_command default
+\float_placement h
+\paperfontsize default
+\spacing other 1.4
+\use_hyperref true
+\pdf_bookmarks true
+\pdf_bookmarksnumbered false
+\pdf_bookmarksopen false
+\pdf_bookmarksopenlevel 1
+\pdf_breaklinks false
+\pdf_pdfborder false
+\pdf_colorlinks false
+\pdf_backref false
+\pdf_pdfusetitle false
+\papersize letterpaper
+\use_geometry true
+\use_package amsmath 1
+\use_package amssymb 1
+\use_package cancel 1
+\use_package esint 1
+\use_package mathdots 1
+\use_package mathtools 1
+\use_package mhchem 1
+\use_package stackrel 1
+\use_package stmaryrd 1
+\use_package undertilde 1
+\cite_engine basic
+\cite_engine_type default
+\biblio_style plain
+\use_bibtopic false
+\use_indices false
+\paperorientation portrait
+\suppress_date false
+\justification false
+\use_refstyle 1
+\use_minted 1
+\index Index
+\shortcut idx
+\color #718c00
+\end_index
+\leftmargin 3cm
+\topmargin 3cm
+\rightmargin 3cm
+\bottommargin 3cm
+\secnumdepth 3
+\tocdepth 3
+\paragraph_separation skip
+\defskip medskip
+\is_math_indent 0
+\math_numbering_side default
+\quotes_style english
+\dynamic_quotes 0
+\papercolumns 1
+\papersides 1
+\paperpagestyle plain
+\listings_params "fontsize={\scriptsize},fontfamily=courier,language=C++,linenos=true,breaklines=true,baselinestretch=1"
+\tracking_changes false
+\output_changes false
+\html_math_output 0
+\html_css_as_file 0
+\html_be_strict false
+\end_header
+
+\begin_body
+
+\begin_layout Title
+Assignment 2 - Scientific Computing SC9505
+\end_layout
+
+\begin_layout Author
+Jared Wogan
+\end_layout
+
+\begin_layout Date
+2022-11-21
+\end_layout
+
+\begin_layout Standard
+All code was compiled inside an Ubunutu WSL environment on an AMD 3900X
+ with 32GB of RAM.
+ All timing are performance data was run with dense, randomly generated
+ arrays and vectors.
+\end_layout
+
+\begin_layout Section
+Matrix Vector Multiplication Using MPI
+\end_layout
+
+\begin_layout Standard
+Our first exercise is to determine the benefits of parallelization on a
+ code that computes a matrix vector product.
+ We first test the code ensuring that it is giving correct results, as can
+ be seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mv-demo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MV/demo.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mv-demo"
+
+\end_inset
+
+Demonstration of the code working.
+ Here the matrix is taken to be the identity, and the vector is filled with
+ consecutive integers.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The scaling when the program is run on 
+\begin_inset Formula $4$
+\end_inset
+
+ threads as a function of the number of rows/columns was determined to be
+ 
+\begin_inset Formula $\mathcal{O}(N^{1.5})$
+\end_inset
+
+, see Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mv-row-timings"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ This is less than is expected for matrix vector multiplication, which is
+ typically an 
+\begin_inset Formula $\mathcal{O}(N^{2})$
+\end_inset
+
+ operation.
+ The serial code I used to compare the parallel code with scaled roughly
+ as 
+\begin_inset Formula $\mathcal{O}(N^{2.2})$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MV/row-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mv-row-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of rows
+ 
+\begin_inset Formula $N$
+\end_inset
+
+ (on a log-log scale), we find that the total runtime scales as 
+\begin_inset Formula $\mathcal{O}(N^{1.5})$
+\end_inset
+
+, which is less than the expected 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\mathcal{O}(N^{2})$
+\end_inset
+
+.
+ Note the plot is generated with data for a constant amount of threads,
+ which in this case is 
+\begin_inset Formula $4$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Looking at the scaling instead for a constant number of rows (here we are
+ using 
+\begin_inset Formula $10000$
+\end_inset
+
+), we find there is no real scaling.
+ Ideally we would like to see the total runtime decrease as we increase
+ the number of threads, but this is not the case for the algorithm being
+ used here.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MV/proc-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mv-proc-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of threads
+ 
+\begin_inset Formula $P$
+\end_inset
+
+ (on a log-log scale).
+ The linear fit is not ideal, such that it is fair to conclude that there
+ is no note worthy scaling with the number of processors.
+ Again it is worth noting that the plot has been generated for a constant
+ number of rows which was taken to be 
+\begin_inset Formula $10000$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+As discussed in lecture, the efficiency of our algorithm is less than ideal,
+ which is supported by the calculations in Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:mv-efficiency"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ (see Appendix 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "sec:Jupyter-Notebook"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ for details on how these values were calculated).
+ We see that running the code across 
+\begin_inset Formula $3$
+\end_inset
+
+ threads yields superlinear scaling, and our program is more efficient than
+ the serial code.
+ However, as the number of threads increase, we start seeing diminishing
+ returns in terms of the speedup, and so our efficiency starts dropping
+ dramatically.
+ At 
+\begin_inset Formula $8$
+\end_inset
+
+ concurrent threads, our code is less than half as efficient as the serial
+ code, and it is actually slower than the case with only 
+\begin_inset Formula $3$
+\end_inset
+
+ threads (in reality they are approximataly equal in runtime, but the linear
+ model predicted it would be slower).
+\end_layout
+
+\begin_layout Standard
+If we wanted to write a program to do matrix vector multiplication in parallel
+ more efficiently, it would be best to have a shared pool of memory that
+ each process can read and write to at the same time.
+ This could be done by adding a single line to the serial code and using
+ OpenMP.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="4">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of Threads
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Speedup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scaling Factor 
+\begin_inset Formula $a$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Efficiency
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.92
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.31
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.31
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.76
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.94
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.94
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.61
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.72
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.72
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.47
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.58
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.58
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.33
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.48
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.48
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.19
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.40
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.40
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:mv-efficiency"
+
+\end_inset
+
+Summary of the speedup and efficiency of our matrix vector multiplication
+ code.
+ These values are taken for a constant number of rows 
+\begin_inset Formula $N=10000$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=C++"
+inline false
+status collapsed
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+// Matrix-vector multiplication code Ab=c //
+\end_layout
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Note that I will index arrays from 0 to n-1.
+\end_layout
+
+\begin_layout Plain Layout
+
+// Here workers do all the work and boss just handles collating results
+\end_layout
+
+\begin_layout Plain Layout
+
+// and sending info about A.
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// include, definitions, globals etc here
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iostream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <fstream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iomanip>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <random>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "boost/multi_array.hpp"
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "mpi.h"
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+using namespace std;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+class MPI_Obj
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+public:
+\end_layout
+
+\begin_layout Plain Layout
+
+    int size;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int rank;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj(int &argc, char **&argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Init(&argc, &argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    ~MPI_Obj()
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Finalize();
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+};
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void GetArraySize(int &output, int &nrows, int &ncols, MPI_Obj &the_mpi,
+ int argc, char **argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        if (argc == 4)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            output = atoi(argv[1]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            nrows = atoi(argv[2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            ncols = atoi(argv[3]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+        else
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of rows -> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> nrows;
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of columns -> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> ncols;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // send everyone nrows, ncols
+\end_layout
+
+\begin_layout Plain Layout
+
+    int buf[2] = {nrows, ncols};
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(buf, 2, MPI_INT, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        nrows = buf[0];
+\end_layout
+
+\begin_layout Plain Layout
+
+        ncols = buf[1];
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void SetupArrays(int nrows, int ncols, boost::multi_array<double, 2> &A,
+ vector<double> &b, vector<double> &c, vector<double> &Arow, MPI_Obj &the_mpi)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    uniform_real_distribution<double> unif(-1.0, 10);
+\end_layout
+
+\begin_layout Plain Layout
+
+    default_random_engine re;
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Set size of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        A.resize(boost::extents[nrows][ncols]);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize A
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows; ++i)
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < ncols; ++j)
+\end_layout
+
+\begin_layout Plain Layout
+
+            {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Reverse Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == (ncols - j - 1))
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Random
+\end_layout
+
+\begin_layout Plain Layout
+
+                A[i][j] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize b
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < ncols; ++i)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            // b[i] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            // b[i] = (double) i;
+\end_layout
+
+\begin_layout Plain Layout
+
+            b[i] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Allocate space for c, the answer
+\end_layout
+
+\begin_layout Plain Layout
+
+        c.reserve(nrows);
+\end_layout
+
+\begin_layout Plain Layout
+
+        c.resize(nrows);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Worker part
+\end_layout
+
+\begin_layout Plain Layout
+
+    else
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Allocate space for 1 row of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.reserve(ncols);
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.resize(ncols);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // send b to every worker process, note b is a vector so b and &b[0]
+ not same
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(&b[0], ncols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void Output(int output, vector<double> &c, MPI_Obj &the_mpi)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0 && output == 1)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << "( " << c[0];
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 1; i < c.size(); ++i)
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << ", " << c[i];
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << ")
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+int main(int argc, char **argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Data File
+\end_layout
+
+\begin_layout Plain Layout
+
+    // ofstream datafile("/home/jared/Desktop/mv-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+    ofstream datafile("mv-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // initialize MPI
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj the_mpi(argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size < 2)
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Abort(MPI_COMM_WORLD, 1);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // determine/distribute size of arrays here
+\end_layout
+
+\begin_layout Plain Layout
+
+    int output = 1, nrows = 0, ncols = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    GetArraySize(output, nrows, ncols, the_mpi, argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size - 1 > nrows)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Abort(MPI_COMM_WORLD, -1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> A;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> b(ncols);
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> c;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> Arow;
+\end_layout
+
+\begin_layout Plain Layout
+
+    SetupArrays(nrows, ncols, A, b, c, Arow, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Status status;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Timing variables
+\end_layout
+
+\begin_layout Plain Layout
+
+    double calc_time = 0, avg_time, total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+        // send one row to each worker tagged with row number, assume size<nrows
+\end_layout
+
+\begin_layout Plain Layout
+
+        int rowsent = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 1; i < the_mpi.size; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&A[rowsent][0], ncols, MPI_DOUBLE, i, rowsent + 1,
+ MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            double ans;
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&ans, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_
+WORLD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+            int sender = status.MPI_SOURCE;
+\end_layout
+
+\begin_layout Plain Layout
+
+            int anstype = status.MPI_TAG; // row number+1
+\end_layout
+
+\begin_layout Plain Layout
+
+            c[anstype - 1] = ans;
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (rowsent < nrows)
+\end_layout
+
+\begin_layout Plain Layout
+
+            { // send new row
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(&A[rowsent][0], ncols, MPI_DOUBLE, sender, rowsent
+ + 1, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+                rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            else
+\end_layout
+
+\begin_layout Plain Layout
+
+            { // tell sender no more work to do via a 0 TAG
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(MPI_BOTTOM, 0, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    else
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Get a row of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Recv(&Arow[0], ncols, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD,
+ &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        while (status.MPI_TAG != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            // work out Arow.b
+\end_layout
+
+\begin_layout Plain Layout
+
+            double ans = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            calc_time -= MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int i = 0; i < ncols; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+                ans += Arow[i] * b[i];
+\end_layout
+
+\begin_layout Plain Layout
+
+            calc_time += MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            // Send answer of Arow.b back to boss and get another row to
+ work on
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&ans, 1, MPI_DOUBLE, 0, status.MPI_TAG, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&Arow[0], ncols, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD
+, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime() - total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Reduce(&calc_time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD)
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        avg_time /= (the_mpi.size - 1); // Boss node doesn't do any of the
+ calculations
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Average calculation time = %.10f
+\backslash
+n", avg_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Total time = %.10f
+\backslash
+n", total_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << fixed << setprecision(10);
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << nrows << " " << ncols << " " << the_mpi.size << " " <<
+ avg_time << " " << total_time << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // output c here on Boss node
+\end_layout
+
+\begin_layout Plain Layout
+
+    Output(output, c, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Matrix Matrix Multiplication Using MPI
+\end_layout
+
+\begin_layout Standard
+Our second task is to generalize the matrix vector product code to perform
+ matrix matrix products.
+ The modified code can be seen below, while a demonstration that the code
+ works correctly can be seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mm-demo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The serial code that will be used for comparison was written using the
+ DGEMM_ function from the BLAS library.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MM/mm-demo.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mm-demo"
+
+\end_inset
+
+Demonstration of the code working.
+ In the first example, the first matrix is taken to be the identity and
+ the second has consecutive integers along the main diagonal.
+ In the second example, the first matrix is changed to the reverse identity
+ (
+\begin_inset Formula $1$
+\end_inset
+
+s along the antidiagonal).
+ In both cases, we get the expected result.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The modified code for matrix matrix multiplication scales as 
+\begin_inset Formula $\mathcal{O}(N^{3.3}),$
+\end_inset
+
+where 
+\begin_inset Formula $N$
+\end_inset
+
+ is the number of rows as can be seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mm-row-timings"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ This is slightly more than the expected
+\begin_inset Formula $\mathcal{O}(N^{3})$
+\end_inset
+
+.
+ 
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+It should be noted that the serial code scaled as 
+\begin_inset Formula $\mathcal{O}(N^{2.9})$
+\end_inset
+
+, which is slightly less than expected.
+ It is also interesting that the current world record (as of 2020) for the
+ asympotitc scaling of matrix matrix multiplication has been shown to be
+ of the order
+\begin_inset Formula $\mathcal{O}(N^{2.3728596})$
+\end_inset
+
+ by Josh Alman and Virginia Vassilevska Williams (arXiv:2010.05846).
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MM/row-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mm-row-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of rows
+ 
+\begin_inset Formula $N$
+\end_inset
+
+ (on a log-log scale), we find that the total runtime scales as 
+\begin_inset Formula $\mathcal{O}(N^{3.3})$
+\end_inset
+
+, which is slightly more than the expected
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\mathcal{O}(N^{3})$
+\end_inset
+
+.
+ 
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+More importantly for our purposes, we find that the total runtime scales
+ as 
+\begin_inset Formula $\mathcal{O}(P^{-1}),$
+\end_inset
+
+where 
+\begin_inset Formula $P$
+\end_inset
+
+ is the total number of threads (for a fixed number of rows 
+\begin_inset Formula $N$
+\end_inset
+
+).
+ This is the expected result as we discussed in lecture: for large 
+\begin_inset Formula $N,$
+\end_inset
+
+we expect the speedup to approach 
+\begin_inset Formula $P$
+\end_inset
+
+, which is supported by Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mm-proc-timings"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+ and Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:mm-efficiency"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MM/proc-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mm-proc-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of threads
+ 
+\begin_inset Formula $P$
+\end_inset
+
+, we find the scaling for a fixed number of rows 
+\begin_inset Formula $N$
+\end_inset
+
+ (here 
+\begin_inset Formula $N=3000$
+\end_inset
+
+) to be of the order 
+\begin_inset Formula $\mathcal{O}(P^{-1})$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="4">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of Threads
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Speedup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scaling Factor 
+\begin_inset Formula $a$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Efficiency
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.66
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.55
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.55
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.24
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.56
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.56
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.83
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.42
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4.02
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.57
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4.62
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.58
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.58
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:mm-efficiency"
+
+\end_inset
+
+Summary of the speedup and efficiency of our matrix matrix multiplication
+ code.
+ These values are taken for a constant number of rows 
+\begin_inset Formula $N=3000$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=C++"
+inline false
+status collapsed
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+// Matrix-Matrix multiplication code AB=C //
+\end_layout
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Note that I will index arrays from 0 to n-1.
+\end_layout
+
+\begin_layout Plain Layout
+
+// Here workers do all the work and boss just handles collating results
+\end_layout
+
+\begin_layout Plain Layout
+
+// and sending info about A.
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// include, definitions, globals etc here
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iostream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <fstream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iomanip>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <random>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "boost/multi_array.hpp"
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "mpi.h"
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+using namespace std;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+class MPI_Obj
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+public:
+\end_layout
+
+\begin_layout Plain Layout
+
+    int size;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int rank;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj(int &argc, char **&argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Init(&argc, &argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    ~MPI_Obj()
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Finalize();
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+};
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void GetArraySize(
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &output,
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &nrows1, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &nrowscols12, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &ncols2, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj &the_mpi, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int argc, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    char **argv
+\end_layout
+
+\begin_layout Plain Layout
+
+) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        if (argc  == 5) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            output = atoi(argv[1]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            nrows1 = atoi(argv[2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            nrowscols12 = atoi(argv[3]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            ncols2 = atoi(argv[4]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        } else {
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of rows for the first matrix
+ -> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> nrows1;
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of columns/rows for the first/secon
+d matrix-> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> nrowscols12;
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of columns for the second matrix->
+ ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> ncols2;            
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // send everyone nrows, ncols
+\end_layout
+
+\begin_layout Plain Layout
+
+    int buf[3] = {nrows1, nrowscols12, ncols2};
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(buf, 3, MPI_INT, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        nrows1 = buf[0];
+\end_layout
+
+\begin_layout Plain Layout
+
+        nrowscols12 = buf[1];
+\end_layout
+
+\begin_layout Plain Layout
+
+        ncols2 = buf[2];
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void SetupArrays(
+\end_layout
+
+\begin_layout Plain Layout
+
+    int nrows1, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int nrowscols12, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int ncols2, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &A, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &B, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &C, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> &Arow,
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> &Crow,
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj &the_mpi
+\end_layout
+
+\begin_layout Plain Layout
+
+) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    uniform_real_distribution<double> unif(-1.0, 10);
+\end_layout
+
+\begin_layout Plain Layout
+
+    default_random_engine re;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    B.resize(boost::extents[nrowscols12][ncols2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+    Crow.reserve(ncols2); Crow.resize(ncols2); // Main process will need to
+ store the values temporarily
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Set size of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        A.resize(boost::extents[nrows1][nrowscols12]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        C.resize(boost::extents[nrows1][ncols2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize A
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows1; ++i) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < nrowscols12; ++j) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Reverse Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == (nrowscols12 - j - 1))
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Random
+\end_layout
+
+\begin_layout Plain Layout
+
+                A[i][j] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize B
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrowscols12; ++i) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < ncols2; ++j) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Reverse Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == (ncols2 - j - 1))
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Random
+\end_layout
+
+\begin_layout Plain Layout
+
+                B[i][j] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Other
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = (double) i + 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    } else {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Worker part
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Allocate space for 1 row of A and 1 row of the answer C
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.reserve(nrowscols12); Arow.resize(nrowscols12);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(&B[0][0], nrowscols12*ncols2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void Output(int output, boost::multi_array<double, 2> &array, MPI_Obj &the_mpi)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0 && output) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << endl << fixed << setprecision(4);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < array.shape()[0]; i++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < array.shape()[1]; j++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                cout << array[i][j];
+\end_layout
+
+\begin_layout Plain Layout
+
+                if (j < array.shape()[1] - 1) cout << ", ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << scientific;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+int main(int argc, char **argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Data File
+\end_layout
+
+\begin_layout Plain Layout
+
+    // ofstream datafile("/home/jared/Desktop/mmblas-timings.txt", ios_base::app)
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    ofstream datafile("mm-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // initialize MPI
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj the_mpi(argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size < 2) MPI_Abort(MPI_COMM_WORLD, 1);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // determine/distribute size of arrays here
+\end_layout
+
+\begin_layout Plain Layout
+
+    int output = 1, nrows1 = 0, nrowscols12 = 0, ncols2 = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    GetArraySize(output, nrows1, nrowscols12, ncols2, the_mpi, argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size - 1 > nrows1) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Abort(MPI_COMM_WORLD, -1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> A;
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> B;
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> C;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> Arow;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> Crow;
+\end_layout
+
+\begin_layout Plain Layout
+
+    SetupArrays(nrows1, nrowscols12, ncols2, A, B, C, Arow, Crow, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Status status;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Timing variables
+\end_layout
+
+\begin_layout Plain Layout
+
+    double calc_time = 0, avg_time, total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+        // send one row to each worker tagged with row number, assume size<nrows
+\end_layout
+
+\begin_layout Plain Layout
+
+        int rowsent = 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 1; i < the_mpi.size; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, i, rowsent,
+ MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows1; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&Crow[0], ncols2, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG,
+ MPI_COMM_WORLD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+            int sender = status.MPI_SOURCE;
+\end_layout
+
+\begin_layout Plain Layout
+
+            int row = status.MPI_TAG - 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+            memcpy(&C[row][0], &Crow[0], ncols2 * sizeof(double));
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (rowsent - 1 < nrows1) { 
+\end_layout
+
+\begin_layout Plain Layout
+
+                // send new row
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, sender,
+ rowsent, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+                rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+            } else { 
+\end_layout
+
+\begin_layout Plain Layout
+
+                // tell sender no more work to do via a 0 TAG
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(MPI_BOTTOM, 0, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Worker part: compute dot products of Arow.b until done message recieved
+\end_layout
+
+\begin_layout Plain Layout
+
+    else
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Get a row of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WOR
+LD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        while (status.MPI_TAG != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int i = 0; i < ncols2; i++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // work out Crow = Arow.B
+\end_layout
+
+\begin_layout Plain Layout
+
+                double c = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                calc_time -= MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+                for (int j = 0; j < nrowscols12; j++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                    c += Arow[j] * B[j][i];
+\end_layout
+
+\begin_layout Plain Layout
+
+                }
+\end_layout
+
+\begin_layout Plain Layout
+
+                calc_time += MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+                Crow[i] = c;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            // Send answer of Arow.B back to boss and get another row to
+ work on
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&Crow[0], ncols2, MPI_DOUBLE, 0, status.MPI_TAG, MPI_COMM_WO
+RLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG,
+ MPI_COMM_WORLD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+        // cout << "Worker " << the_mpi.rank << " got kill tag
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime() - total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Reduce(&calc_time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD)
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    avg_time /= (the_mpi.size - 1); // Boss node doesn't do any of the calculatio
+ns
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Average calculation time = %.10f
+\backslash
+n", avg_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Total time = %.10f
+\backslash
+n", total_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << fixed << setprecision(10);
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << nrows1 << " " << nrowscols12 << " " << ncols2 << " "
+ << 
+\end_layout
+
+\begin_layout Plain Layout
+
+            the_mpi.size << " " << avg_time << " " << total_time << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // output c here on Boss node
+\end_layout
+
+\begin_layout Plain Layout
+
+    Output(output, C, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Matrix Matrix Multiplication Using MPI and BLAS
+\end_layout
+
+\begin_layout Standard
+In this section, we modify the code to compute the matrix matrix porduct
+ from above.
+ Instead of computing the product of a row from the first matrix and a column
+ of the second matrix manually, we substitute the DDOT_ function from the
+ BLAS library.
+ As we did for the previous code, we test the code still works as can be
+ seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mmblas-demo"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MMblas/mmblas-demo.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mmblas-demo"
+
+\end_inset
+
+Demonstration of the code working.
+ Just as we did for the non-BLAS implementation, the first example takes
+ the first matrix to be the identity while the second has consecutive integers
+ along the main diagonal.
+ In the second example, the first matrix is changed to the reverse identity
+ (
+\begin_inset Formula $1$
+\end_inset
+
+s along the antidiagonal).
+ In both cases, we get the expected result.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+The new code using BLAS shows that the total runtime as a function of the
+ number of rows 
+\begin_inset Formula $N$
+\end_inset
+
+ scales as 
+\begin_inset Formula $\mathcal{O}(N^{3.6})$
+\end_inset
+
+ as supported by Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mmblas-row-timings"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ This is peculiar since this means the modified code using BLAS actually
+ scales worse than the non-BLAS code.
+ 
+\end_layout
+
+\begin_layout Standard
+Perhaps this is because the BLAS code doesn't actually scale in polynomial
+ time and is instead scaling like 
+\begin_inset Formula $\mathcal{O}(N^{\alpha}\log N)$
+\end_inset
+
+ for some 
+\begin_inset Formula $\alpha$
+\end_inset
+
+, but I am not confident enough to say for certain
+\begin_inset Foot
+status open
+
+\begin_layout Plain Layout
+If there is a more obvious or apparent reason for this behaviour, I'd be
+ interested to know.
+\end_layout
+
+\end_inset
+
+.
+ I would expect the BLAS code to scale better than the non-BLAS code, and
+ given that the linear regression does not fit as nicely as it did for the
+ non-BLAS case, I suspect this may be the case.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MMblas/row-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mmblas-row-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of rows
+ 
+\begin_inset Formula $N$
+\end_inset
+
+ (on a log-log scale), we find that the total runtime scales as 
+\begin_inset Formula $\mathcal{\mathcal{O}}(N^{3.6})$
+\end_inset
+
+, which again is more than the expected
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+
+\begin_inset Formula $\mathcal{O}(N^{3})$
+\end_inset
+
+, and even worse than the non-BLAS scaling.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Considering now the scaling as a function of the number of threads 
+\begin_inset Formula $P$
+\end_inset
+
+, we again find a similar result: that for a fixed number of rows 
+\begin_inset Formula $N$
+\end_inset
+
+, the scaling goes as 
+\begin_inset Formula $\mathcal{O}(P^{-1})$
+\end_inset
+
+, as can be seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:mmblas-proc-timings"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ This is once again good news and agrees with what we would expect: the
+ scaling should still be the same as in the non-BLAS case.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename MMblas/proc-time-scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:mmblas-proc-timings"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of threads
+ 
+\begin_inset Formula $P$
+\end_inset
+
+, we find the scaling for a fixed number of rows 
+\begin_inset Formula $N$
+\end_inset
+
+ (here 
+\begin_inset Formula $N=3000$
+\end_inset
+
+) to be of the order 
+\begin_inset Formula $\mathcal{O}(P^{-1})$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Looking at the speedup and efficiency as seen in Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:mmblas-efficiency"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we see that our BLAS code runs faster than the non-BLAS code and is therefore
+ more efficient as well.
+ It also appears that that efficiency of the program increases as we allocate
+ more threads.
+ As a test, I ran the code with 
+\begin_inset Formula $N=3000$
+\end_inset
+
+ rows and 
+\begin_inset Formula $P=12$
+\end_inset
+
+ threads, and found the efficiency to drop off slightly to 
+\begin_inset Formula $0.59$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="4">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of Threads
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Speedup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scaling Factor 
+\begin_inset Formula $a$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Efficiency
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.05
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.63
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.63
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.65
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.64
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.64
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.22
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.65
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.65
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3.80
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.65
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.65
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4.35
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.66
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.66
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4.90
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.66
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.66
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:mmblas-efficiency"
+
+\end_inset
+
+Summary of the speedup and efficiency of our matrix matrix multiplication
+ code using the BLAS DDOT_ function.
+ These values are taken for a constant number of rows 
+\begin_inset Formula $N=3000$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+I would expect if we ran the code for say 
+\begin_inset Formula $N=5000$
+\end_inset
+
+, the efficiency would be much higher, since if we look at the efficiency
+ for 
+\begin_inset Formula $N=2000$
+\end_inset
+
+, as in Table 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "tab:mmblas-efficiency-1"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, we see that the efficiency of the program nearly doubles going from 
+\begin_inset Formula $N=2000$
+\end_inset
+
+ to 
+\begin_inset Formula $N=3000$
+\end_inset
+
+.
+ As a test, I ran the serial code for 
+\begin_inset Formula $N=5000$
+\end_inset
+
+, which took 
+\begin_inset Formula $1083.20$
+\end_inset
+
+ seconds.
+ The parallel code ran with 
+\begin_inset Formula $P=12$
+\end_inset
+
+ took 
+\begin_inset Formula $128.45$
+\end_inset
+
+ seconds, corresponding to a speedup of 
+\begin_inset Formula $8.43$
+\end_inset
+
+ and an efficiency of 
+\begin_inset Formula $0.70$
+\end_inset
+
+.
+ When run with 
+\begin_inset Formula $P=8$
+\end_inset
+
+ instead, it took 
+\begin_inset Formula $188.57$
+\end_inset
+
+ seconds, giving a speedup of 
+\begin_inset Formula $5.74$
+\end_inset
+
+ and an efficiency of 
+\begin_inset Formula $0.72$
+\end_inset
+
+.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float table
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\noindent
+\align center
+\begin_inset Tabular
+<lyxtabular version="3" rows="7" columns="4">
+<features tabularvalignment="middle">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<column alignment="center" valignment="top">
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Number of Threads
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Speedup
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Scaling Factor 
+\begin_inset Formula $a$
+\end_inset
+
+
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+Efficiency
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+3
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.16
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.39
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.39
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+4
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.52
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.38
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.38
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+5
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+1.87
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+6
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.22
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+7
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.56
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.37
+\end_layout
+
+\end_inset
+</cell>
+</row>
+<row>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+8
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+2.90
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.36
+\end_layout
+
+\end_inset
+</cell>
+<cell alignment="center" valignment="top" topline="true" bottomline="true" leftline="true" rightline="true" usebox="none">
+\begin_inset Text
+
+\begin_layout Plain Layout
+0.36
+\end_layout
+
+\end_inset
+</cell>
+</row>
+</lyxtabular>
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "tab:mmblas-efficiency-1"
+
+\end_inset
+
+Summary of the speedup and efficiency of our matrix matrix multiplication
+ code using the BLAS DDOT_ function.
+ These values are taken for a constant number of rows 
+\begin_inset Formula $N=2000$
+\end_inset
+
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=C++"
+inline false
+status collapsed
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+// Matrix-Matrix multiplication code AB=C //
+\end_layout
+
+\begin_layout Plain Layout
+
+////////////////////////////////////////////
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// Note that I will index arrays from 0 to n-1.
+\end_layout
+
+\begin_layout Plain Layout
+
+// Here workers do all the work and boss just handles collating results
+\end_layout
+
+\begin_layout Plain Layout
+
+// and sending infor about A.
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// include, definitions, globals etc here
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iostream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <fstream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iomanip>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <random>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "boost/multi_array.hpp"
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "mpi.h"
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+extern "C" {
+\end_layout
+
+\begin_layout Plain Layout
+
+    extern double ddot_(int *, double *, int *, double *, int *);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+using namespace std;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+class MPI_Obj
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+public:
+\end_layout
+
+\begin_layout Plain Layout
+
+    int size;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int rank;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj(int &argc, char **&argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Init(&argc, &argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_size(MPI_COMM_WORLD, &size);
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Comm_rank(MPI_COMM_WORLD, &rank);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    ~MPI_Obj()
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Finalize();
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+};
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void GetArraySize(
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &output,
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &nrows1, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &nrowscols12, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int &ncols2, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj &the_mpi, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int argc, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    char **argv
+\end_layout
+
+\begin_layout Plain Layout
+
+) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        if (argc  == 5) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            output = atoi(argv[1]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            nrows1 = atoi(argv[2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            nrowscols12 = atoi(argv[3]);
+\end_layout
+
+\begin_layout Plain Layout
+
+            ncols2 = atoi(argv[4]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        } else {
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of rows for the first matrix
+ -> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> nrows1;
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of columns/rows for the first/secon
+d matrix-> ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> nrowscols12;
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << "Please enter the number of columns for the second matrix->
+ ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            cin >> ncols2;            
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // send everyone nrows, ncols
+\end_layout
+
+\begin_layout Plain Layout
+
+    int buf[3] = {nrows1, nrowscols12, ncols2};
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(buf, 3, MPI_INT, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        nrows1 = buf[0];
+\end_layout
+
+\begin_layout Plain Layout
+
+        nrowscols12 = buf[1];
+\end_layout
+
+\begin_layout Plain Layout
+
+        ncols2 = buf[2];
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void SetupArrays(
+\end_layout
+
+\begin_layout Plain Layout
+
+    int nrows1, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int nrowscols12, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    int ncols2, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &A, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &B, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> &C, 
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> &Arow,
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> &Crow,
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj &the_mpi
+\end_layout
+
+\begin_layout Plain Layout
+
+) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    uniform_real_distribution<double> unif(-1.0, 10);
+\end_layout
+
+\begin_layout Plain Layout
+
+    default_random_engine re;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    B.resize(boost::extents[nrowscols12][ncols2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+    Crow.reserve(ncols2); Crow.resize(ncols2); // Main process will need to
+ store the values temporarily
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Set size of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        A.resize(boost::extents[nrows1][nrowscols12]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        C.resize(boost::extents[nrows1][ncols2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize A
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows1; ++i) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < nrowscols12; ++j) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Reverse Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == (nrowscols12 - j - 1))
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     A[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Random
+\end_layout
+
+\begin_layout Plain Layout
+
+                A[i][j] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize B
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrowscols12; ++i) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < ncols2; ++j) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Reverse Identity
+\end_layout
+
+\begin_layout Plain Layout
+
+                // if (i == (ncols2 - j - 1))
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // else
+\end_layout
+
+\begin_layout Plain Layout
+
+                //     B[i][j] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Random
+\end_layout
+
+\begin_layout Plain Layout
+
+                // B[i][j] = unif(re);
+\end_layout
+
+\begin_layout Plain Layout
+
+                // Other
+\end_layout
+
+\begin_layout Plain Layout
+
+                if (i == j)
+\end_layout
+
+\begin_layout Plain Layout
+
+                    B[i][j] = (double) i + 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+                else
+\end_layout
+
+\begin_layout Plain Layout
+
+                    B[i][j] = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    } else {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Worker part
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Allocate space for 1 row of A and 1 row of the answer C
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.reserve(nrowscols12); Arow.resize(nrowscols12);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(&B[0][0], nrowscols12*ncols2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void Output(int output, boost::multi_array<double, 2> &array, MPI_Obj &the_mpi)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0 && output) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << endl << fixed << setprecision(4);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < array.shape()[0]; i++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 0; j < array.shape()[1]; j++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                cout << array[i][j];
+\end_layout
+
+\begin_layout Plain Layout
+
+                if (j < array.shape()[1] - 1) cout << ", ";
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            cout << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        cout << scientific;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+int main(int argc, char **argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Data File
+\end_layout
+
+\begin_layout Plain Layout
+
+    // ofstream datafile("/home/jared/Desktop/mm-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+    ofstream datafile("mmblas-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // initialize MPI
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Obj the_mpi(argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size < 2) MPI_Abort(MPI_COMM_WORLD, 1);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // determine/distribute size of arrays here
+\end_layout
+
+\begin_layout Plain Layout
+
+    int output = 1, nrows1 = 0, nrowscols12 = 0, ncols2 = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    GetArraySize(output, nrows1, nrowscols12, ncols2, the_mpi, argc, argv);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.size - 1 > nrows1) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Abort(MPI_COMM_WORLD, -1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> A;
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> B;
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> C;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> Arow;
+\end_layout
+
+\begin_layout Plain Layout
+
+    vector<double> Crow;
+\end_layout
+
+\begin_layout Plain Layout
+
+    SetupArrays(nrows1, nrowscols12, ncols2, A, B, C, Arow, Crow, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Status status;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Timing variables
+\end_layout
+
+\begin_layout Plain Layout
+
+    double calc_time = 0, avg_time, total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Boss part
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+        // send one row to each worker tagged with row number, assume size<nrows
+\end_layout
+
+\begin_layout Plain Layout
+
+        int rowsent = 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 1; i < the_mpi.size; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, i, rowsent,
+ MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < nrows1; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&Crow[0], ncols2, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG,
+ MPI_COMM_WORLD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+            int sender = status.MPI_SOURCE;
+\end_layout
+
+\begin_layout Plain Layout
+
+            int row = status.MPI_TAG - 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+            memcpy(&C[row][0], &Crow[0], ncols2 * sizeof(double));
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (rowsent - 1 < nrows1) { 
+\end_layout
+
+\begin_layout Plain Layout
+
+                // send new row
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, sender,
+ rowsent, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+                rowsent++;
+\end_layout
+
+\begin_layout Plain Layout
+
+            } else { 
+\end_layout
+
+\begin_layout Plain Layout
+
+                // tell sender no more work to do via a 0 TAG
+\end_layout
+
+\begin_layout Plain Layout
+
+                MPI_Send(MPI_BOTTOM, 0, MPI_DOUBLE, sender, 0, MPI_COMM_WORLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Worker part: compute dot products of Arow.b until done message recieved
+\end_layout
+
+\begin_layout Plain Layout
+
+    else
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Get a row of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WOR
+LD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        while (status.MPI_TAG != 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int i = 0; i < ncols2; i++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+                // work out Crow = Arow.B
+\end_layout
+
+\begin_layout Plain Layout
+
+                calc_time -= MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+                Crow[i] = ddot_(&nrowscols12, &Arow[0], new int(1), &B[0][i],
+ &ncols2);
+\end_layout
+
+\begin_layout Plain Layout
+
+                calc_time += MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            // Send answer of Arow.B back to boss and get another row to
+ work on
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Send(&Crow[0], ncols2, MPI_DOUBLE, 0, status.MPI_TAG, MPI_COMM_WO
+RLD);
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG,
+ MPI_COMM_WORLD, &status);
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+        total_time = MPI_Wtime() - total_time;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Reduce(&calc_time, &avg_time, 1, MPI_DOUBLE, MPI_SUM, 0, MPI_COMM_WORLD)
+;
+\end_layout
+
+\begin_layout Plain Layout
+
+    avg_time /= (the_mpi.size - 1); // Boss node doesn't do any of the calculatio
+ns
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (the_mpi.rank == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Average calculation time = %.10f
+\backslash
+n", avg_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+        printf("Total time = %.10f
+\backslash
+n", total_time);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << fixed << setprecision(10);
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << nrows1 << " " << nrowscols12 << " " << ncols2 << " "
+ << 
+\end_layout
+
+\begin_layout Plain Layout
+
+            the_mpi.size << " " << avg_time << " " << total_time << endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // output c here on Boss node
+\end_layout
+
+\begin_layout Plain Layout
+
+    Output(output, C, the_mpi);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+Solving Poisson's Equation Using LAPACK
+\end_layout
+
+\begin_layout Standard
+The last part of the assignment is a brief introduction to the LAPACK library.
+ The code being tested solves the Poisson equation 
+\begin_inset Formula $\nabla^{2}U\left(\vec{x}\right)=f\left(\vec{x}\right)$
+\end_inset
+
+.
+ In Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:poisson-plot"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+, I have run the provided code and plotted the solution using plotly in
+ Python.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename LP/plot.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:poisson-plot"
+
+\end_inset
+
+Plot of the solution using 
+\begin_inset Formula $N=100$
+\end_inset
+
+ sites.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+Testing the run time of the code as a function of the number of sites 
+\begin_inset Formula $N$
+\end_inset
+
+, the scaling is found to be of the order 
+\begin_inset Formula $\mathcal{O}(N^{3.8})$
+\end_inset
+
+, as can be seen in Figure 
+\begin_inset CommandInset ref
+LatexCommand ref
+reference "fig:lp-scaling"
+plural "false"
+caps "false"
+noprefix "false"
+
+\end_inset
+
+.
+ The scaling can be expected to be 
+\begin_inset Formula $\mathcal{O}(N^{4})$
+\end_inset
+
+, as performing a PLU factoraization scales as 
+\begin_inset Formula $\mathcal{O}(N^{3})$
+\end_inset
+
+, and back-substitution should contribute a factor proportional to 
+\begin_inset Formula $\mathcal{O}(N)$
+\end_inset
+
+.
+ Given we are using BLAS routines which are optimized for banded and positive
+ definite matrices, it is convincing our scaling should be slightly less
+ than the worst case scenario of 
+\begin_inset Formula $\mathcal{O}(N^{4})$
+\end_inset
+
+.
+ 
+\end_layout
+
+\begin_layout Standard
+Using the linear regression model (red line) in the plot, we can estimate
+ that the largest system that can be solved (on my hardware) in 5 minutes
+ to be roughly 
+\begin_inset Formula $N=975$
+\end_inset
+
+.
+ This seems reasonable, since the runtime for a system with 
+\begin_inset Formula $N=1000$
+\end_inset
+
+ was roughly 
+\begin_inset Formula $385$
+\end_inset
+
+ seconds.
+\end_layout
+
+\begin_layout Standard
+\begin_inset Float figure
+placement H
+wide false
+sideways false
+status collapsed
+
+\begin_layout Plain Layout
+\align center
+\begin_inset Graphics
+	filename LP/scaling.png
+	lyxscale 30
+	width 75text%
+
+\end_inset
+
+
+\begin_inset Caption Standard
+
+\begin_layout Plain Layout
+\begin_inset CommandInset label
+LatexCommand label
+name "fig:lp-scaling"
+
+\end_inset
+
+Plotting the runtime of the program as a function of the number of sites
+ 
+\begin_inset Formula $N$
+\end_inset
+
+ (on a log-log scale), we find that the total runtime scales as 
+\begin_inset Formula $\mathcal{O}(N^{3.8})$
+\end_inset
+
+
+\family roman
+\series medium
+\shape up
+\size normal
+\emph off
+\bar no
+\strikeout off
+\xout off
+\uuline off
+\uwave off
+\noun off
+\color none
+.
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset listings
+lstparams "language=C++"
+inline false
+status collapsed
+
+\begin_layout Plain Layout
+
+// Program to compute solution to -laplacian u = -F
+\end_layout
+
+\begin_layout Plain Layout
+
+// compile with
+\end_layout
+
+\begin_layout Plain Layout
+
+// run with mpirun -n 1 <executable> output_cout output_file N
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iostream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <iomanip>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <fstream>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include <mpi.h>
+\end_layout
+
+\begin_layout Plain Layout
+
+#include "boost/multi_array.hpp"
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+// LAPACK library files
+\end_layout
+
+\begin_layout Plain Layout
+
+extern "C"
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // general band factorize routine
+\end_layout
+
+\begin_layout Plain Layout
+
+    extern int dpbtrf_(char *, int *, int *, double *, int *, int *);
+\end_layout
+
+\begin_layout Plain Layout
+
+    // general band solve using factorization routine
+\end_layout
+
+\begin_layout Plain Layout
+
+    extern int dpbtrs_(char *, int *, int *, int *, double *, int *, double
+ *, int *, int *);
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void AbInit(int N, boost::multi_array<double, 2> &Ab)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Coefficient Matrix: initialize
+\end_layout
+
+\begin_layout Plain Layout
+
+    for (int i = 0; i < N * N; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int j = 0; j < N + 1; j++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            Ab[j][i] = 0.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (j == 0)
+\end_layout
+
+\begin_layout Plain Layout
+
+                Ab[j][i] = -1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (j == N - 1 && i % N)
+\end_layout
+
+\begin_layout Plain Layout
+
+                Ab[j][i] = -1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            if (j == N)
+\end_layout
+
+\begin_layout Plain Layout
+
+                Ab[j][i] = 4.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    // std::cout << "Ab initialized 
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+    //  Printout Ab for testing, small N only
+\end_layout
+
+\begin_layout Plain Layout
+
+    // for (int i=0; i < N+1; i++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    //   std::cout << Ab[i][0];
+\end_layout
+
+\begin_layout Plain Layout
+
+    //   for (int j=1; j < N*N; j++) {
+\end_layout
+
+\begin_layout Plain Layout
+
+    //     std::cout << " " << Ab[i][j];
+\end_layout
+
+\begin_layout Plain Layout
+
+    //   }
+\end_layout
+
+\begin_layout Plain Layout
+
+    //   std::cout << "
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+    // }
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+void RHSInitialize(int N, std::vector<double> &F, double bcx, double bcy)
+\end_layout
+
+\begin_layout Plain Layout
+
+{
+\end_layout
+
+\begin_layout Plain Layout
+
+    // RHS: fill in boundary condition values
+\end_layout
+
+\begin_layout Plain Layout
+
+    for (int i = 0; i < N; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        F[i] += bcx;             // bottom boundary
+\end_layout
+
+\begin_layout Plain Layout
+
+        F[N * N - i - 1] += bcx; // top boundary
+\end_layout
+
+\begin_layout Plain Layout
+
+        F[i * N] += bcy;         // left boundary
+\end_layout
+
+\begin_layout Plain Layout
+
+        F[i * N + N - 1] += bcy; // right boundary
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    // std::cout << "RHS initialized
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // RHS: fill in actual right-hand side, some "charges", actually h^2*charge
+\end_layout
+
+\begin_layout Plain Layout
+
+    F[N / 4 * N + N / 2] += 0.5;
+\end_layout
+
+\begin_layout Plain Layout
+
+    F[3 * N / 4 * N + N / 2] += -0.5;
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+int main(int argc, char** argv)
+\end_layout
+
+\begin_layout Plain Layout
+
+{ 
+\end_layout
+
+\begin_layout Plain Layout
+
+    double time = MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+    // ofstream timingfile("/home/jared/Desktop/lp-timings.txt", ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+    std::ofstream timingfile("lp-timings.txt", std::ios_base::app);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // ofstream datafile("/home/jared/Desktop/lp-data.txt");
+\end_layout
+
+\begin_layout Plain Layout
+
+    std::ofstream datafile("lp-data.txt");
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Coefficient Matrix: declare
+\end_layout
+
+\begin_layout Plain Layout
+
+    int output_cout = 1, output_file = 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int N = 10;    
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (argc == 4) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        output_cout = atoi(argv[1]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        output_file = atoi(argv[2]);
+\end_layout
+
+\begin_layout Plain Layout
+
+        N = atoi(argv[3]);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    int M = N + 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int ABcols = N * N;
+\end_layout
+
+\begin_layout Plain Layout
+
+    boost::multi_array<double, 2> Ab(boost::extents[M][ABcols], boost::fortran_s
+torage_order());
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    AbInit(N, Ab); // Initialize coefficient matrix
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Coefficient Matrix: factorize
+\end_layout
+
+\begin_layout Plain Layout
+
+    char uplo = 'U';
+\end_layout
+
+\begin_layout Plain Layout
+
+    int KD = N;
+\end_layout
+
+\begin_layout Plain Layout
+
+    int info;
+\end_layout
+
+\begin_layout Plain Layout
+
+    dpbtrf_(&uplo, &ABcols, &KD, &Ab[0][0], &M, &info);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (info)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        std::cout << "Ab failed to factorize, info = " << info << "
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+        exit(1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // RHS: declare
+\end_layout
+
+\begin_layout Plain Layout
+
+    const double bcx = 0.0, bcy = 0.0; // boundary conditions along x and
+ y assume same on both sides
+\end_layout
+
+\begin_layout Plain Layout
+
+    std::vector<double> F(N * N, 0.0);
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    RHSInitialize(N, F, bcx, bcy); // set up boundary conditions and right
+ hand side
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Solve system
+\end_layout
+
+\begin_layout Plain Layout
+
+    int Bcols = 1;
+\end_layout
+
+\begin_layout Plain Layout
+
+    dpbtrs_(&uplo, &ABcols, &KD, &Bcols, &Ab[0][0], &M, &F[0], &ABcols,
+ &info);
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (info)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        std::cout << "System solve failed, info = " << info << "
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+        exit(1);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    time = MPI_Wtime() - time;
+\end_layout
+
+\begin_layout Plain Layout
+
+    timingfile << N << " " << time << std::endl;
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // Output solution
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (output_cout) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < N; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            std::cout << F[i * N];
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 1; j < N; j++)
+\end_layout
+
+\begin_layout Plain Layout
+
+            {
+\end_layout
+
+\begin_layout Plain Layout
+
+                std::cout << " " << F[i * N + j];
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            std::cout << "
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+    if (output_file) {
+\end_layout
+
+\begin_layout Plain Layout
+
+        datafile << std::fixed << std::setprecision(10);
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < N; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            datafile << F[i * N];
+\end_layout
+
+\begin_layout Plain Layout
+
+            for (int j = 1; j < N; j++)
+\end_layout
+
+\begin_layout Plain Layout
+
+            {
+\end_layout
+
+\begin_layout Plain Layout
+
+                datafile << " " << F[i * N + j];
+\end_layout
+
+\begin_layout Plain Layout
+
+            }
+\end_layout
+
+\begin_layout Plain Layout
+
+            datafile << "
+\backslash
+n";
+\end_layout
+
+\begin_layout Plain Layout
+
+        }
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    return 0;
+\end_layout
+
+\begin_layout Plain Layout
+
+}
+\end_layout
+
+\end_inset
+
+
+\end_layout
+
+\begin_layout Section
+\start_of_appendix
+\begin_inset CommandInset label
+LatexCommand label
+name "sec:Jupyter-Notebook"
+
+\end_inset
+
+Jupyter Notebook
+\end_layout
+
+\begin_layout Standard
+Below is an example notebook I have used in order to generate and analyze
+ my timing data.
+ The notebook will compile and run the given program a number of times for
+ various numbers of threads and matrix dimensions.
+ It then creates linear regression models from the data which can be used
+ to determine the speedup and efficiency of parallelization.
+ 
+\end_layout
+
+\begin_layout Standard
+\begin_inset External
+	template PDFPages
+	filename MV/plots.pdf
+	extra LaTeX "pages=-"
+
+\end_inset
+
+
+\end_layout
+
+\end_body
+\end_document
