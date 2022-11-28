@@ -118,6 +118,7 @@ All code was compiled inside an Ubunutu WSL environment on an AMD 3900X
 \begin_inset CommandInset href
 LatexCommand href
 target "https://github.com/JaredWogan/SC9505"
+literal "false"
 
 \end_inset
 
