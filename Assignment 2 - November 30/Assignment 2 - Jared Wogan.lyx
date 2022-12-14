@@ -112,7 +112,7 @@ Jared Wogan
 \begin_layout Standard
 All code was compiled inside an Ubunutu WSL environment on an AMD 3900X
  with 32GB of RAM.
- All timing are performance data was run with dense, randomly generated
+ All timing and performance data was run with dense, randomly generated
  arrays and vectors.
  A full repository containing all of my code can be found at 
 \begin_inset CommandInset href
@@ -130,10 +130,11 @@ Matrix Vector Multiplication Using MPI
 \end_layout
 
 \begin_layout Standard
-Our first exercise is to determine the benefits of parallelization on a
- code that computes a matrix vector product.
- We first test the code ensuring that it is giving correct results, as can
- be seen in Figure 
+This program calculates the product of a matrix with a vector.
+ Our task is to determine the benefits (if any) that parallelization provides
+ for this problem.
+ The parallelized code can be confirmed to be working, as seen in Figure
+ 
 \begin_inset CommandInset ref
 LatexCommand ref
 reference "fig:mv-demo"
@@ -147,6 +148,18 @@ noprefix "false"
 \end_layout
 
 \begin_layout Standard
+The program has been parallelizaed as follows.
+ First, the main process wil initialize both the matrix and the vector that
+ will be used in the calculations.
+ The main process then broadcasts the vector to all other threads.
+ In order to perform the full calculation, the main process will send each
+ thread a unique row of the matrix, which the thread will then use to calculate
+ the corresponding element of the result vector.
+ These results are collected by the main process, which will subsequently
+ send the threads a new row, if there is more work to be done.
+\end_layout
+
+\begin_layout Standard
 \begin_inset Float figure
 placement H
 wide false
@@ -157,8 +170,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MV/demo.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -220,7 +232,6 @@ noprefix "false"
 \end_inset
 
 .
- 
 \end_layout
 
 \begin_layout Standard
@@ -234,8 +245,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MV/row-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -317,8 +327,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MV/proc-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -924,6 +933,11 @@ void GetArraySize(int &output, int &nrows, int &ncols, MPI_Obj &the_mpi,
 \begin_layout Plain Layout
 
 {
+\end_layout
+
+\begin_layout Plain Layout
+
+	// Accept input parameters from the command line, otherwise ask the user
 \end_layout
 
 \begin_layout Plain Layout
@@ -1866,6 +1880,13 @@ n", total_time);
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Matrix Matrix Multiplication Using MPI
 \end_layout
@@ -1887,7 +1908,17 @@ noprefix "false"
 .
  The serial code that will be used for comparison was written using the
  DGEMM_ function from the BLAS library.
- 
+\end_layout
+
+\begin_layout Standard
+The program that computes a matrix matrix produt has been parallelized by
+ first having the main process assemble the two matrices to be used.
+ Each thread is subsequently sent a copy of the second matrix by the main
+ process.
+ To compute the product, each thread is sent a row of the first matrix,
+ which it will then use to compute an entire column of the resulting matrix.
+ Upon completion, the thread will send the completed column to the main
+ process in exchange for a new row (if there are any left).
 \end_layout
 
 \begin_layout Standard
@@ -1901,8 +1932,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MM/mm-demo.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -1995,14 +2025,13 @@ It should be noted that the serial code scaled as
 placement H
 wide false
 sideways false
-status collapsed
+status open
 
 \begin_layout Plain Layout
 \align center
 \begin_inset Graphics
 	filename MM/row-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -2038,7 +2067,7 @@ Plotting the runtime of the program as a function of the number of rows
 \uwave off
 \noun off
 \color none
-
+ 
 \begin_inset Formula $\mathcal{O}(N^{3})$
 \end_inset
 
@@ -2113,8 +2142,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MM/proc-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -2491,7 +2519,7 @@ status collapsed
 
 \begin_layout Plain Layout
 
-// Matrix-Matrix multiplication code AB=C //
+// Matrix-vector multiplication code Ab=c //
 \end_layout
 
 \begin_layout Plain Layout
@@ -2664,47 +2692,13 @@ public:
 
 \begin_layout Plain Layout
 
-void GetArraySize(
+void GetArraySize(int &output, int &nrows, int &ncols, MPI_Obj &the_mpi,
+ int argc, char **argv)
 \end_layout
 
 \begin_layout Plain Layout
 
-    int &output,
-\end_layout
-
-\begin_layout Plain Layout
-
-    int &nrows1, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    int &nrowscols12, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    int &ncols2, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    MPI_Obj &the_mpi, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    int argc, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    char **argv
-\end_layout
-
-\begin_layout Plain Layout
-
-) {
+{
 \end_layout
 
 \begin_layout Plain Layout
@@ -2719,7 +2713,12 @@ void GetArraySize(
 
 \begin_layout Plain Layout
 
-        if (argc  == 5) {
+        if (argc == 4)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
 \end_layout
 
 \begin_layout Plain Layout
@@ -2729,55 +2728,47 @@ void GetArraySize(
 
 \begin_layout Plain Layout
 
-            nrows1 = atoi(argv[2]);
+            nrows = atoi(argv[2]);
 \end_layout
 
 \begin_layout Plain Layout
 
-            nrowscols12 = atoi(argv[3]);
+            ncols = atoi(argv[3]);
 \end_layout
 
 \begin_layout Plain Layout
 
-            ncols2 = atoi(argv[4]);
+        }
 \end_layout
 
 \begin_layout Plain Layout
 
-        } else {
+        else
 \end_layout
 
 \begin_layout Plain Layout
 
-            cout << "Please enter the number of rows for the first matrix
- -> ";
+        {
 \end_layout
 
 \begin_layout Plain Layout
 
-            cin >> nrows1;
+            cout << "Please enter the number of rows -> ";
 \end_layout
 
 \begin_layout Plain Layout
 
-            cout << "Please enter the number of columns/rows for the first/secon
-d matrix-> ";
+            cin >> nrows;
 \end_layout
 
 \begin_layout Plain Layout
 
-            cin >> nrowscols12;
+            cout << "Please enter the number of columns -> ";
 \end_layout
 
 \begin_layout Plain Layout
 
-            cout << "Please enter the number of columns for the second matrix->
- ";
-\end_layout
-
-\begin_layout Plain Layout
-
-            cin >> ncols2;            
+            cin >> ncols;
 \end_layout
 
 \begin_layout Plain Layout
@@ -2801,12 +2792,12 @@ d matrix-> ";
 
 \begin_layout Plain Layout
 
-    int buf[3] = {nrows1, nrowscols12, ncols2};
+    int buf[2] = {nrows, ncols};
 \end_layout
 
 \begin_layout Plain Layout
 
-    MPI_Bcast(buf, 3, MPI_INT, 0, MPI_COMM_WORLD);
+    MPI_Bcast(buf, 2, MPI_INT, 0, MPI_COMM_WORLD);
 \end_layout
 
 \begin_layout Plain Layout
@@ -2821,17 +2812,12 @@ d matrix-> ";
 
 \begin_layout Plain Layout
 
-        nrows1 = buf[0];
+        nrows = buf[0];
 \end_layout
 
 \begin_layout Plain Layout
 
-        nrowscols12 = buf[1];
-\end_layout
-
-\begin_layout Plain Layout
-
-        ncols2 = buf[2];
+        ncols = buf[1];
 \end_layout
 
 \begin_layout Plain Layout
@@ -2850,57 +2836,13 @@ d matrix-> ";
 
 \begin_layout Plain Layout
 
-void SetupArrays(
+void SetupArrays(int nrows, int ncols, boost::multi_array<double, 2> &A,
+ vector<double> &b, vector<double> &c, vector<double> &Arow, MPI_Obj &the_mpi)
 \end_layout
 
 \begin_layout Plain Layout
 
-    int nrows1, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    int nrowscols12, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    int ncols2, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    boost::multi_array<double, 2> &A, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    boost::multi_array<double, 2> &B, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    boost::multi_array<double, 2> &C, 
-\end_layout
-
-\begin_layout Plain Layout
-
-    vector<double> &Arow,
-\end_layout
-
-\begin_layout Plain Layout
-
-    vector<double> &Crow,
-\end_layout
-
-\begin_layout Plain Layout
-
-    MPI_Obj &the_mpi
-\end_layout
-
-\begin_layout Plain Layout
-
-) {
+{
 \end_layout
 
 \begin_layout Plain Layout
@@ -2911,25 +2853,6 @@ void SetupArrays(
 \begin_layout Plain Layout
 
     default_random_engine re;
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\begin_layout Plain Layout
-
-    B.resize(boost::extents[nrowscols12][ncols2]);
-\end_layout
-
-\begin_layout Plain Layout
-
-    Crow.reserve(ncols2); Crow.resize(ncols2); // Main process will need to
- store the values temporarily
-\end_layout
-
-\begin_layout Plain Layout
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -2954,12 +2877,7 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-        A.resize(boost::extents[nrows1][nrowscols12]);
-\end_layout
-
-\begin_layout Plain Layout
-
-        C.resize(boost::extents[nrows1][ncols2]);
+        A.resize(boost::extents[nrows][ncols]);
 \end_layout
 
 \begin_layout Plain Layout
@@ -2973,12 +2891,17 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-        for (int i = 0; i < nrows1; ++i) {
+        for (int i = 0; i < nrows; ++i)
 \end_layout
 
 \begin_layout Plain Layout
 
-            for (int j = 0; j < nrowscols12; ++j) {
+            for (int j = 0; j < ncols; ++j)
+\end_layout
+
+\begin_layout Plain Layout
+
+            {
 \end_layout
 
 \begin_layout Plain Layout
@@ -2988,22 +2911,22 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-                // if (i == j)
+                if (i == j)
 \end_layout
 
 \begin_layout Plain Layout
 
-                //     A[i][j] = 1.0;
+                    A[i][j] = 1.0;
 \end_layout
 
 \begin_layout Plain Layout
 
-                // else
+                else
 \end_layout
 
 \begin_layout Plain Layout
 
-                //     A[i][j] = 0.0;
+                    A[i][j] = 0.0;
 \end_layout
 
 \begin_layout Plain Layout
@@ -3013,7 +2936,7 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-                // if (i == (nrowscols12 - j - 1))
+                // if (i == (ncols - j - 1))
 \end_layout
 
 \begin_layout Plain Layout
@@ -3038,12 +2961,46 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-                A[i][j] = unif(re);
+                // A[i][j] = unif(re);
 \end_layout
 
 \begin_layout Plain Layout
 
             }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Initialize b
+\end_layout
+
+\begin_layout Plain Layout
+
+        for (int i = 0; i < ncols; ++i)
+\end_layout
+
+\begin_layout Plain Layout
+
+        {
+\end_layout
+
+\begin_layout Plain Layout
+
+            // b[i] = 1.0;
+\end_layout
+
+\begin_layout Plain Layout
+
+            b[i] = (double) i;
+\end_layout
+
+\begin_layout Plain Layout
+
+            // b[i] = unif(re);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3057,132 +3014,17 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-        // Initialize B
+        // Allocate space for c, the answer
 \end_layout
 
 \begin_layout Plain Layout
 
-        for (int i = 0; i < nrowscols12; ++i) {
+        c.reserve(nrows);
 \end_layout
 
 \begin_layout Plain Layout
 
-            for (int j = 0; j < ncols2; ++j) {
-\end_layout
-
-\begin_layout Plain Layout
-
-                // Identity
-\end_layout
-
-\begin_layout Plain Layout
-
-                // if (i == j)
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = 1.0;
-\end_layout
-
-\begin_layout Plain Layout
-
-                // else
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = 0.0;
-\end_layout
-
-\begin_layout Plain Layout
-
-                // Reverse Identity
-\end_layout
-
-\begin_layout Plain Layout
-
-                // if (i == (ncols2 - j - 1))
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = 1.0;
-\end_layout
-
-\begin_layout Plain Layout
-
-                // else
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = 0.0;
-\end_layout
-
-\begin_layout Plain Layout
-
-                // Random
-\end_layout
-
-\begin_layout Plain Layout
-
-                B[i][j] = unif(re);
-\end_layout
-
-\begin_layout Plain Layout
-
-                // Other
-\end_layout
-
-\begin_layout Plain Layout
-
-                // if (i == j)
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = (double) i + 1;
-\end_layout
-
-\begin_layout Plain Layout
-
-                // else
-\end_layout
-
-\begin_layout Plain Layout
-
-                //     B[i][j] = 0;
-\end_layout
-
-\begin_layout Plain Layout
-
-            }
-\end_layout
-
-\begin_layout Plain Layout
-
-        }
-\end_layout
-
-\begin_layout Plain Layout
-
-    } else {
-\end_layout
-
-\begin_layout Plain Layout
-
-        // Worker part
-\end_layout
-
-\begin_layout Plain Layout
-
-        // Allocate space for 1 row of A and 1 row of the answer C
-\end_layout
-
-\begin_layout Plain Layout
-
-        Arow.reserve(nrowscols12); Arow.resize(nrowscols12);
+        c.resize(nrows);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3192,7 +3034,52 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-    MPI_Bcast(&B[0][0], nrowscols12*ncols2, MPI_DOUBLE, 0, MPI_COMM_WORLD);
+    // Worker part
+\end_layout
+
+\begin_layout Plain Layout
+
+    else
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
+\end_layout
+
+\begin_layout Plain Layout
+
+        // Allocate space for 1 row of A
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.reserve(ncols);
+\end_layout
+
+\begin_layout Plain Layout
+
+        Arow.resize(ncols);
+\end_layout
+
+\begin_layout Plain Layout
+
+    }
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+    // send b to every worker process, note b is a vector so b and &b[0]
+ not same
+\end_layout
+
+\begin_layout Plain Layout
+
+    MPI_Bcast(&b[0], ncols, MPI_DOUBLE, 0, MPI_COMM_WORLD);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3206,7 +3093,7 @@ void SetupArrays(
 
 \begin_layout Plain Layout
 
-void Output(int output, boost::multi_array<double, 2> &array, MPI_Obj &the_mpi)
+void Output(int output, vector<double> &c, MPI_Obj &the_mpi)
 \end_layout
 
 \begin_layout Plain Layout
@@ -3216,65 +3103,34 @@ void Output(int output, boost::multi_array<double, 2> &array, MPI_Obj &the_mpi)
 
 \begin_layout Plain Layout
 
-    if (the_mpi.rank == 0 && output) {
+    if (the_mpi.rank == 0 && output == 1)
 \end_layout
 
 \begin_layout Plain Layout
 
-        cout << endl << fixed << setprecision(4);
+    {
 \end_layout
 
 \begin_layout Plain Layout
 
+        cout << "( " << c[0];
 \end_layout
 
 \begin_layout Plain Layout
 
-        for (int i = 0; i < array.shape()[0]; i++) {
+        for (int i = 1; i < c.size(); ++i)
 \end_layout
 
 \begin_layout Plain Layout
 
-            for (int j = 0; j < array.shape()[1]; j++) {
+            cout << ", " << c[i];
 \end_layout
 
 \begin_layout Plain Layout
 
-                cout << array[i][j];
-\end_layout
-
-\begin_layout Plain Layout
-
-                if (j < array.shape()[1] - 1) cout << ", ";
-\end_layout
-
-\begin_layout Plain Layout
-
-            }
-\end_layout
-
-\begin_layout Plain Layout
-
-            cout << endl;
-\end_layout
-
-\begin_layout Plain Layout
-
-        }
-\end_layout
-
-\begin_layout Plain Layout
-
-        cout << endl;
-\end_layout
-
-\begin_layout Plain Layout
-
-\end_layout
-
-\begin_layout Plain Layout
-
-        cout << scientific;
+        cout << ")
+\backslash
+n";
 \end_layout
 
 \begin_layout Plain Layout
@@ -3308,13 +3164,12 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    // ofstream datafile("/home/jared/Desktop/mmblas-timings.txt", ios_base::app)
-;
+    // ofstream datafile("/home/jared/Desktop/mv-timings.txt", ios_base::app);
 \end_layout
 
 \begin_layout Plain Layout
 
-    ofstream datafile("mm-timings.txt", ios_base::app);
+    ofstream datafile("mv-timings.txt", ios_base::app);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3333,7 +3188,12 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    if (the_mpi.size < 2) MPI_Abort(MPI_COMM_WORLD, 1);
+    if (the_mpi.size < 2)
+\end_layout
+
+\begin_layout Plain Layout
+
+        MPI_Abort(MPI_COMM_WORLD, 1);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3347,17 +3207,22 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    int output = 1, nrows1 = 0, nrowscols12 = 0, ncols2 = 0;
+    int output = 1, nrows = 0, ncols = 0;
 \end_layout
 
 \begin_layout Plain Layout
 
-    GetArraySize(output, nrows1, nrowscols12, ncols2, the_mpi, argc, argv);
+    GetArraySize(output, nrows, ncols, the_mpi, argc, argv);
 \end_layout
 
 \begin_layout Plain Layout
 
-    if (the_mpi.size - 1 > nrows1) {
+    if (the_mpi.size - 1 > nrows)
+\end_layout
+
+\begin_layout Plain Layout
+
+    {
 \end_layout
 
 \begin_layout Plain Layout
@@ -3381,12 +3246,12 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    boost::multi_array<double, 2> B;
+    vector<double> b(ncols);
 \end_layout
 
 \begin_layout Plain Layout
 
-    boost::multi_array<double, 2> C;
+    vector<double> c;
 \end_layout
 
 \begin_layout Plain Layout
@@ -3396,12 +3261,7 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    vector<double> Crow;
-\end_layout
-
-\begin_layout Plain Layout
-
-    SetupArrays(nrows1, nrowscols12, ncols2, A, B, C, Arow, Crow, the_mpi);
+    SetupArrays(nrows, ncols, A, b, c, Arow, the_mpi);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3473,7 +3333,7 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-            MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, i, rowsent,
+            MPI_Send(&A[rowsent - 1][0], ncols, MPI_DOUBLE, i, rowsent,
  MPI_COMM_WORLD);
 \end_layout
 
@@ -3493,7 +3353,7 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-        for (int i = 0; i < nrows1; i++)
+        for (int i = 0; i < nrows; i++)
 \end_layout
 
 \begin_layout Plain Layout
@@ -3503,8 +3363,13 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-            MPI_Recv(&Crow[0], ncols2, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG,
- MPI_COMM_WORLD, &status);
+            double ans;
+\end_layout
+
+\begin_layout Plain Layout
+
+            MPI_Recv(&ans, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_
+WORLD, &status);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3519,26 +3384,22 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-            memcpy(&C[row][0], &Crow[0], ncols2 * sizeof(double));
+            c[row] = ans;
 \end_layout
 
 \begin_layout Plain Layout
 
+            if (rowsent - 1 < nrows)
 \end_layout
 
 \begin_layout Plain Layout
 
-            if (rowsent - 1 < nrows1) { 
+            { // send new row
 \end_layout
 
 \begin_layout Plain Layout
 
-                // send new row
-\end_layout
-
-\begin_layout Plain Layout
-
-                MPI_Send(&A[rowsent - 1][0], nrowscols12, MPI_DOUBLE, sender,
+                MPI_Send(&A[rowsent - 1][0], ncols, MPI_DOUBLE, sender,
  rowsent, MPI_COMM_WORLD);
 \end_layout
 
@@ -3549,12 +3410,17 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-            } else { 
+            }
 \end_layout
 
 \begin_layout Plain Layout
 
-                // tell sender no more work to do via a 0 TAG
+            else
+\end_layout
+
+\begin_layout Plain Layout
+
+            { // tell sender no more work to do via a 0 TAG
 \end_layout
 
 \begin_layout Plain Layout
@@ -3579,11 +3445,6 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-    // Worker part: compute dot products of Arow.b until done message recieved
-\end_layout
-
-\begin_layout Plain Layout
-
     else
 \end_layout
 
@@ -3599,8 +3460,8 @@ int main(int argc, char **argv)
 
 \begin_layout Plain Layout
 
-        MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WOR
-LD, &status);
+        MPI_Recv(&Arow[0], ncols, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD,
+ &status);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3615,47 +3476,12 @@ LD, &status);
 
 \begin_layout Plain Layout
 
-            for (int i = 0; i < ncols2; i++) {
+            // work out Arow.b
 \end_layout
 
 \begin_layout Plain Layout
 
-                // work out Crow = Arow.B
-\end_layout
-
-\begin_layout Plain Layout
-
-                double c = 0;
-\end_layout
-
-\begin_layout Plain Layout
-
-                calc_time -= MPI_Wtime();
-\end_layout
-
-\begin_layout Plain Layout
-
-                for (int j = 0; j < nrowscols12; j++) {
-\end_layout
-
-\begin_layout Plain Layout
-
-                    c += Arow[j] * B[j][i];
-\end_layout
-
-\begin_layout Plain Layout
-
-                }
-\end_layout
-
-\begin_layout Plain Layout
-
-                calc_time += MPI_Wtime();
-\end_layout
-
-\begin_layout Plain Layout
-
-                Crow[i] = c;
+            double ans = 0.0;
 \end_layout
 
 \begin_layout Plain Layout
@@ -3664,37 +3490,48 @@ LD, &status);
 
 \begin_layout Plain Layout
 
-            }
+            calc_time -= MPI_Wtime();
 \end_layout
 
 \begin_layout Plain Layout
 
-            // Send answer of Arow.B back to boss and get another row to
+            for (int i = 0; i < ncols; i++)
+\end_layout
+
+\begin_layout Plain Layout
+
+                ans += Arow[i] * b[i];
+\end_layout
+
+\begin_layout Plain Layout
+
+            calc_time += MPI_Wtime();
+\end_layout
+
+\begin_layout Plain Layout
+
+\end_layout
+
+\begin_layout Plain Layout
+
+            // Send answer of Arow.b back to boss and get another row to
  work on
 \end_layout
 
 \begin_layout Plain Layout
 
-            MPI_Send(&Crow[0], ncols2, MPI_DOUBLE, 0, status.MPI_TAG, MPI_COMM_WO
-RLD);
+            MPI_Send(&ans, 1, MPI_DOUBLE, 0, status.MPI_TAG, MPI_COMM_WORLD);
 \end_layout
 
 \begin_layout Plain Layout
 
-            MPI_Recv(&Arow[0], nrowscols12, MPI_DOUBLE, 0, MPI_ANY_TAG,
- MPI_COMM_WORLD, &status);
+            MPI_Recv(&Arow[0], ncols, MPI_DOUBLE, 0, MPI_ANY_TAG, MPI_COMM_WORLD
+, &status);
 \end_layout
 
 \begin_layout Plain Layout
 
         }
-\end_layout
-
-\begin_layout Plain Layout
-
-        // cout << "Worker " << the_mpi.rank << " got kill tag
-\backslash
-n";
 \end_layout
 
 \begin_layout Plain Layout
@@ -3728,12 +3565,6 @@ n";
 
 \begin_layout Plain Layout
 
-    avg_time /= (the_mpi.size - 1); // Boss node doesn't do any of the calculatio
-ns
-\end_layout
-
-\begin_layout Plain Layout
-
 \end_layout
 
 \begin_layout Plain Layout
@@ -3744,6 +3575,12 @@ ns
 \begin_layout Plain Layout
 
     {
+\end_layout
+
+\begin_layout Plain Layout
+
+        avg_time /= (the_mpi.size - 1); // Boss node doesn't do any of the
+ calculations
 \end_layout
 
 \begin_layout Plain Layout
@@ -3771,13 +3608,8 @@ n", total_time);
 
 \begin_layout Plain Layout
 
-        datafile << nrows1 << " " << nrowscols12 << " " << ncols2 << " "
- << 
-\end_layout
-
-\begin_layout Plain Layout
-
-            the_mpi.size << " " << avg_time << " " << total_time << endl;
+        datafile << nrows << " " << ncols << " " << the_mpi.size << " " <<
+ avg_time << " " << total_time << endl;
 \end_layout
 
 \begin_layout Plain Layout
@@ -3796,7 +3628,7 @@ n", total_time);
 
 \begin_layout Plain Layout
 
-    Output(output, C, the_mpi);
+    Output(output, c, the_mpi);
 \end_layout
 
 \begin_layout Plain Layout
@@ -3809,6 +3641,13 @@ n", total_time);
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Matrix Matrix Multiplication Using MPI and BLAS
 \end_layout
@@ -3816,9 +3655,10 @@ Matrix Matrix Multiplication Using MPI and BLAS
 \begin_layout Standard
 In this section, we modify the code to compute the matrix matrix porduct
  from above.
- Instead of computing the product of a row from the first matrix and a column
- of the second matrix manually, we substitute the DDOT_ function from the
- BLAS library.
+ The new code is parellelized identically to the non-BLAS code, with the
+ only change being the method each thread uses locally to compute the product
+ of a row with the second matrix.
+ Namely, we use the DDOT_ function provided by the BLAS library.
  As we did for the previous code, we test the code still works as can be
  seen in Figure 
 \begin_inset CommandInset ref
@@ -3845,8 +3685,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MMblas/mmblas-demo.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -3947,8 +3786,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MMblas/row-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -4040,8 +3878,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename MMblas/proc-time-scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -6152,6 +5989,13 @@ n", total_time);
 
 \end_layout
 
+\begin_layout Standard
+\begin_inset Newpage pagebreak
+\end_inset
+
+
+\end_layout
+
 \begin_layout Section
 Solving Poisson's Equation Using LAPACK
 \end_layout
@@ -6175,7 +6019,33 @@ noprefix "false"
 
 , I have run the provided code and plotted the solution using plotly in
  Python.
- 
+\end_layout
+
+\begin_layout Standard
+The code works by solving a linear system of equations of the form 
+\begin_inset Formula $Ax=b$
+\end_inset
+
+, where 
+\begin_inset Formula $A$
+\end_inset
+
+ is a matrix, while 
+\begin_inset Formula $x$
+\end_inset
+
+ and 
+\begin_inset Formula $b$
+\end_inset
+
+ are vectors.
+ The program is made more efficient by noting for this problem that the
+ matrix 
+\begin_inset Formula $A$
+\end_inset
+
+ will be a banded, negative-definite matrix, such that we can use the optimized
+ LAPACK functions DPBTRF_ and DPBTRS_ to factor and solve the system.
 \end_layout
 
 \begin_layout Standard
@@ -6189,8 +6059,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename LP/plot.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -6294,8 +6163,7 @@ status collapsed
 \align center
 \begin_inset Graphics
 	filename LP/scaling.png
-	lyxscale 30
-	width 75text%
+	width 95text%
 
 \end_inset
 
@@ -7057,6 +6925,13 @@ n";
 }
 \end_layout
 
+\end_inset
+
+
+\end_layout
+
+\begin_layout Standard
+\begin_inset Newpage pagebreak
 \end_inset
 
 

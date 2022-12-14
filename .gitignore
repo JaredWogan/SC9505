@@ -1,5 +1,8 @@
+*.csv
 *.o
 *.out
 *.lyx*
 .vscode
 *.lock
+*.xcf
+*.ini

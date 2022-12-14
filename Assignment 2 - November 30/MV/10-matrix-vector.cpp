@@ -162,10 +162,10 @@ int main(int argc, char **argv)
     {
         total_time = MPI_Wtime();
         // send one row to each worker tagged with row number, assume size<nrows
-        int rowsent = 0;
+        int rowsent = 1;
         for (int i = 1; i < the_mpi.size; i++)
         {
-            MPI_Send(&A[rowsent][0], ncols, MPI_DOUBLE, i, rowsent + 1, MPI_COMM_WORLD);
+            MPI_Send(&A[rowsent - 1][0], ncols, MPI_DOUBLE, i, rowsent, MPI_COMM_WORLD);
             rowsent++;
         }
 
@@ -174,11 +174,11 @@ int main(int argc, char **argv)
             double ans;
             MPI_Recv(&ans, 1, MPI_DOUBLE, MPI_ANY_SOURCE, MPI_ANY_TAG, MPI_COMM_WORLD, &status);
             int sender = status.MPI_SOURCE;
-            int anstype = status.MPI_TAG; // row number+1
-            c[anstype - 1] = ans;
-            if (rowsent < nrows)
+            int row = status.MPI_TAG - 1;
+            c[row] = ans;
+            if (rowsent - 1 < nrows)
             { // send new row
-                MPI_Send(&A[rowsent][0], ncols, MPI_DOUBLE, sender, rowsent + 1, MPI_COMM_WORLD);
+                MPI_Send(&A[rowsent - 1][0], ncols, MPI_DOUBLE, sender, rowsent, MPI_COMM_WORLD);
                 rowsent++;
             }
             else
