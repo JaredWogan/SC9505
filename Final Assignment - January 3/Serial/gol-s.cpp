@@ -6,6 +6,10 @@
 #include <mpi.h>
 #include <SDL2/SDL.h>
 
+// I am aware that my class definitions do not follow typical OOP conventions
+// There should really be getters and setters for things
+// But I am too lazy to go and change all of that now
+
 using namespace std;
 
 // Define colours
@@ -321,13 +325,9 @@ class SDLCamera {
 
         void fitToScreen() {
             // Zooms out until the grid fits the screen
-            double stretch_x = (double) this->screen_width / this->grid_width();
-            double stretch_y = (double) this->screen_height / this->grid_height();
-            if (this->screen_width > grid_width() || this->screen_height > grid_height()) {
-                this->zoom *= max(stretch_x, stretch_y);
-            } else {
-                this->zoom *= min(stretch_x, stretch_y);
-            }
+            double target_x = (double) this->screen_width / (this->default_cell_width * this->cells->num_cells_x);
+            double target_y = (double) this->screen_width / (this->default_cell_height * this->cells->num_cells_y);
+            this->zoom = min(target_x, target_y);
             this->renderGrid();
         }
         

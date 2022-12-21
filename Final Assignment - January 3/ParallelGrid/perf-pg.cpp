@@ -7,6 +7,10 @@
 #include <boost/multi_array.hpp>
 #include <mpi.h>
 
+// I am aware that my class definitions do not follow typical OOP conventions
+// There should really be getters and setters for things
+// But I am too lazy to go and change all of that now
+
 using namespace std;
 
 typedef boost::multi_array<int, 2> Tgrid;
